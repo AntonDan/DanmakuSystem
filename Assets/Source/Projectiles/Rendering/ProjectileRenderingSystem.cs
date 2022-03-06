@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -86,6 +85,7 @@ namespace Projectiles
 			{
 				_meshPropertiesBuffer.Dispose();
 			}
+
 		}
 
 

@@ -3,7 +3,7 @@ using Unity.Entities;
 namespace Projectiles
 {
 	[UpdateInGroup(typeof(InitializationSystemGroup))]
-	public class SpawnerControlSystem : SystemBase
+	public class ProjectileSpawnerControlSystem : SystemBase
 	{
 		private EndInitializationEntityCommandBufferSystem _endInitializationEntityCommandBufferSystem;
 
@@ -14,12 +14,9 @@ namespace Projectiles
 
 		protected override void OnUpdate()
 		{
-			EntityCommandBuffer commandBuffer = _endInitializationEntityCommandBufferSystem.CreateCommandBuffer();
-			EntityQuery spawnerQuery = GetEntityQuery(ComponentType.ReadOnly<ProjectileSpawnerData>());
-			if (Time.ElapsedTime > 10)
-			{
-				commandBuffer.AddComponent<Disabled>(spawnerQuery);
-			}
+			// EntityCommandBuffer commandBuffer = _endInitializationEntityCommandBufferSystem.CreateCommandBuffer();
+			// EntityQuery spawnerQuery = GetEntityQuery(ComponentType.ReadOnly<ProjectileCircleSpawnerConfig>());
+			// commandBuffer.AddComponent<Disabled>(spawnerQuery);
 		}
 	}
 }

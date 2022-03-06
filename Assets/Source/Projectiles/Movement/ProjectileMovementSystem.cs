@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Rendering;
 using Unity.Transforms;
@@ -28,20 +29,23 @@ namespace Projectiles
 		protected override void OnUpdate()
 		{
 			RefreshCameraBounds();
+			EntityQuery projectileQuery = GetEntityQuery(ComponentType.ReadWrite<Translation>(), ComponentType.ReadWrite<Rotation2D>(), ComponentType.ReadOnly<MovementComponent>());
+
 			EntityCommandBuffer.ParallelWriter commandBuffer = _endSimulationEntityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
-
-			EntityQuery projectileQuery = GetEntityQuery(ComponentType.ReadOnly<Translation>(), ComponentType.ReadOnly<ProjectileMovementData>());
-
-			ProjectileMovementJob projectileMovementJob = new ProjectileMovementJob
+			EntityMovementJob projectileMovementJob = new EntityMovementJob
 			{
+				entitiesToDestroy = EntityDestructionSystem.spawnersToDestroyParallel,
 				entityTypeHandle = GetEntityTypeHandle(),
 				translationTypeHandle = GetComponentTypeHandle<Translation>(false),
-				projectileMoveTypeHandle = GetComponentTypeHandle<ProjectileMovementData>(true),
+				rotationTypeHandle = GetComponentTypeHandle<Rotation2D>(false),
+				projectileMoveTypeHandle = GetComponentTypeHandle<MovementComponent>(true),
 				deltaTime = Time.DeltaTime,
 				projectileBounds = _cameraBounds,
 				commandBuffer = commandBuffer
 			};
 			Dependency = projectileMovementJob.ScheduleParallel(projectileQuery, 1, Dependency);
+
+			// Dependency.Complete();
 			_endSimulationEntityCommandBufferSystem.AddJobHandleForProducer(Dependency);
 		}
 
@@ -50,28 +54,28 @@ namespace Projectiles
 			if (_mainCamera == null || _mainCameraTransform == null)
 			{
 				_mainCamera = Camera.main;
-				if (_mainCamera != null)
-				{
-					_mainCameraTransform = _mainCamera.transform;
-					_cameraHalfSize = new Vector3(_mainCamera.orthographicSize * 2.0f, _mainCamera.orthographicSize / _mainCamera.aspect * 2.0f, 0);
-				}
-				else
-				{
-					return;
-				}
+				if (_mainCamera == null) return;
+
+				_mainCameraTransform = _mainCamera.transform;
+				_cameraHalfSize = new Vector3(_mainCamera.orthographicSize * _mainCamera.aspect * 2.0f, _mainCamera.orthographicSize * 2.0f, 0);
 			}
 			_cameraBounds.min = _mainCameraTransform.position - _cameraHalfSize;
 			_cameraBounds.max = _mainCameraTransform.position + _cameraHalfSize;
 		}
 	}
 
-	public struct ProjectileMovementJob : IJobEntityBatchWithIndex
+	[BurstCompile]
+	public struct EntityMovementJob : IJobEntityBatchWithIndex
 	{
+		public NativeQueue<Entity>.ParallelWriter entitiesToDestroy;
+
 		[ReadOnly] public EntityTypeHandle entityTypeHandle;
 
 		public ComponentTypeHandle<Translation> translationTypeHandle;
 
-		[ReadOnly] public ComponentTypeHandle<ProjectileMovementData> projectileMoveTypeHandle;
+		public ComponentTypeHandle<Rotation2D> rotationTypeHandle;
+
+		[ReadOnly] public ComponentTypeHandle<MovementComponent> projectileMoveTypeHandle;
 
 		[ReadOnly] public float deltaTime;
 
@@ -79,27 +83,31 @@ namespace Projectiles
 
 		public EntityCommandBuffer.ParallelWriter commandBuffer;
 
-		[BurstCompile]
 		public void Execute(ArchetypeChunk batchInChunk, int batchIndex, int indexOfFirstEntityInQuery)
 		{
-			var entityChunk = batchInChunk.GetNativeArray(entityTypeHandle);
-			var translationArray = batchInChunk.GetNativeArray(translationTypeHandle);
-			var projectileMoveDataArray = batchInChunk.GetNativeArray(projectileMoveTypeHandle);
+			NativeArray<Entity> entityChunk = batchInChunk.GetNativeArray(entityTypeHandle);
+			NativeArray<Translation> translationArray = batchInChunk.GetNativeArray(translationTypeHandle);
+			NativeArray<Rotation2D> rotationArray = batchInChunk.GetNativeArray(rotationTypeHandle);
+			NativeArray<MovementComponent> projectileMoveDataArray = batchInChunk.GetNativeArray(projectileMoveTypeHandle);
 			for (int i = 0; i < batchInChunk.Count; ++i)
 			{
 				Translation translation = translationArray[i];
-				ProjectileMovementData projectileMoveData = projectileMoveDataArray[i];
-				float2 delta = (projectileMoveData.speed * deltaTime) * projectileMoveData.direction;
-				translation.Value.x += delta.x;
-				translation.Value.y += delta.y;
 				if (!projectileBounds.Contains(translation.Value))
 				{
-					int entityIndex = indexOfFirstEntityInQuery + i;
-					commandBuffer.DestroyEntity(entityIndex, entityChunk[i]);
+					entitiesToDestroy.Enqueue(entityChunk[i]);
 				}
 				else
 				{
+					MovementComponent projectileMoveData = projectileMoveDataArray[i];
+					float2 delta = (projectileMoveData.movementSpeed * deltaTime) * rotationArray[i].direction;
+					translation.Value.x += delta.x;
+					translation.Value.y += delta.y;
+					translation.Value.z = translation.Value.y + 0.25f * translation.Value.x;
 					translationArray[i] = translation;
+
+					Rotation2D rotation = rotationArray[i];
+					rotation.RotateBy(projectileMoveData.rotationSpeed * deltaTime);
+					rotationArray[i] = rotation;
 				}
 			}
 		}
