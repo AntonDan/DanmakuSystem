@@ -40,37 +40,7 @@ namespace Projectiles
 		{
 			base.OnCreate();
 			_mainCamera = Camera.main;
-			_quad = new Mesh();
-			Vector3[] vertices = new Vector3[4]
-			{
-				new Vector3(0, 0, 0),
-				new Vector3(0.25f, 0, 0),
-				new Vector3(0, 0.25f, 0),
-				new Vector3(0.25f, 0.25f, 0)
-			};
-			_quad.SetVertices(vertices);
-			int[] tris = new int[6]
-			{
-				0, 2, 1,
-				2, 3, 1
-			};
-			_quad.triangles = tris;
-			Vector3[] normals = new Vector3[4]
-			{
-				-Vector3.forward,
-				-Vector3.forward,
-				-Vector3.forward,
-				-Vector3.forward
-			};
-			_quad.normals = normals;
-			Vector2[] uv = new Vector2[4]
-			{
-				new Vector2(0, 0),
-				new Vector2(1, 0),
-				new Vector2(0, 1),
-				new Vector2(1, 1)
-			};
-			_quad.uv = uv;
+			_quad = GenerateQuad(0.25f);
 			_argsBuffer = new ComputeBuffer(1, args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
 		}
 
@@ -139,6 +109,42 @@ namespace Projectiles
 			}
 			_cameraBounds.min = _mainCameraTransform.position - _cameraHalfSize;
 			_cameraBounds.max = _mainCameraTransform.position + _cameraHalfSize + _cameraClipPlane;
+		}
+
+		private Mesh GenerateQuad(float size)
+		{
+			Mesh quad = new Mesh();
+			Vector3[] vertices = new Vector3[4]
+			{
+				new Vector3(0, 0, 0),
+				new Vector3(size, 0, 0),
+				new Vector3(0, size, 0),
+				new Vector3(size, size, 0)
+			};
+			quad.SetVertices(vertices);
+			int[] tris = new int[6]
+			{
+				0, 2, 1,
+				2, 3, 1
+			};
+			quad.triangles = tris;
+			Vector3[] normals = new Vector3[4]
+			{
+				-Vector3.forward,
+				-Vector3.forward,
+				-Vector3.forward,
+				-Vector3.forward
+			};
+			quad.normals = normals;
+			Vector2[] uv = new Vector2[4]
+			{
+				new Vector2(0, 0),
+				new Vector2(1, 0),
+				new Vector2(0, 1),
+				new Vector2(1, 1)
+			};
+			quad.uv = uv;
+			return quad;
 		}
 	}
 }

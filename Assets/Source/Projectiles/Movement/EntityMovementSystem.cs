@@ -12,23 +12,17 @@ using UnityEngine;
 
 namespace Projectiles
 {
-	public class ProjectileMovementSystem : SystemBase
+	public class EntityMovementSystem : SystemBase
 	{
-		private Transform _mainCameraTransform;
-		private Camera _mainCamera;
-		private Rect _cameraBounds;
-		private Vector3 _cameraHalfSize;
 		private EndSimulationEntityCommandBufferSystem _endSimulationEntityCommandBufferSystem;
 
 		protected override void OnCreate()
 		{
-			_cameraBounds = new Rect(Vector2.zero, Vector2.one);
 			_endSimulationEntityCommandBufferSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
 		}
 
 		protected override void OnUpdate()
 		{
-			RefreshCameraBounds();
 			EntityQuery projectileQuery = GetEntityQuery(ComponentType.ReadWrite<Translation>(), ComponentType.ReadWrite<Rotation2D>(), ComponentType.ReadOnly<MovementComponent>());
 
 			EntityMovementJob projectileMovementJob = new EntityMovementJob
@@ -42,20 +36,6 @@ namespace Projectiles
 
 			// Dependency.Complete();
 			_endSimulationEntityCommandBufferSystem.AddJobHandleForProducer(Dependency);
-		}
-
-		private void RefreshCameraBounds()
-		{
-			if (_mainCamera == null || _mainCameraTransform == null)
-			{
-				_mainCamera = Camera.main;
-				if (_mainCamera == null) return;
-
-				_mainCameraTransform = _mainCamera.transform;
-				_cameraHalfSize = new Vector3(_mainCamera.orthographicSize * _mainCamera.aspect * 2.0f, _mainCamera.orthographicSize * 2.0f, 0);
-			}
-			_cameraBounds.min = _mainCameraTransform.position - _cameraHalfSize;
-			_cameraBounds.max = _mainCameraTransform.position + _cameraHalfSize;
 		}
 	}
 

@@ -13,7 +13,6 @@ namespace Projectiles
 
 		public float radius;
 
-
 		public ProjectileCircleSpawnerConfig(int burstAmount, float firingCyclePeriod, int projectileCountPerCycle, float radius)
 		{
 			this.entityToSpawn = Entity.Null;
@@ -40,6 +39,37 @@ namespace Projectiles
 		public void SetEntityToSpawn(Entity newEntity)
 		{
 			entityToSpawn = newEntity;
+		}
+
+		public int GetBurstAmount()
+		{
+			return burstAmount;
+		}
+
+		public void SetBurstAmount(int newBurstAmount)
+		{
+			burstAmount = newBurstAmount;
+		}
+
+		public float GetFiringCyclePeriod()
+		{
+			return firingCyclePeriod;
+		}
+
+		public void SetFiringCyclePeriod(float newFiringCyclePeriod)
+		{
+			firingCyclePeriod = newFiringCyclePeriod;
+		}
+
+		public int GetProjectileCountPerCycle()
+		{
+			return projectileCountPerCycle;
+		}
+
+
+		public void SetProjectileCountPerCycle(int newProjectileCountPerCycle)
+		{
+			projectileCountPerCycle = newProjectileCountPerCycle;
 		}
 	}
 }

@@ -6,5 +6,14 @@ namespace Projectiles
 	{
 		Entity GetEntityToSpawn();
 		void SetEntityToSpawn(Entity newEntity);
+
+		int GetBurstAmount();
+		void SetBurstAmount(int newBurstAmount);
+
+		float GetFiringCyclePeriod();
+		void SetFiringCyclePeriod(float newFiringCyclePeriod);
+
+		int GetProjectileCountPerCycle();
+		void SetProjectileCountPerCycle(int newProjectileCountPerCycle);
 	}
 }

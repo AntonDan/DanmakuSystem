@@ -1,9 +1,7 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using Projectiles;
 using Unity.Entities;
-using Unity.Transforms;
 
 public class TestBehavior : MonoBehaviour
 {
@@ -13,7 +11,7 @@ public class TestBehavior : MonoBehaviour
 	private EntityManager _entityManager;
 	private BlobAssetStore _blobAssetStore;
 
-	private CircularProjectileEmitter _emitter = new CircularProjectileEmitter(Vector2.zero, 0, 0, 0, new ProjectileCircleSpawnerConfig(10, 3.0f, 4, 3.0f));
+	private CircularProjectileEmitter _emitter = new CircularProjectileEmitter(Vector2.zero, 0, 0, 0, new ProjectileCircleSpawnerConfig(4, 2.0f, 4, 3.0f));
 	private CircularProjectileEmitter _subemitter = new CircularProjectileEmitter(Vector2.zero, 0, 0, 20, new ProjectileCircleSpawnerConfig(5, 0.2f, 8, 0.5f));
 
 	private void Awake()
@@ -37,7 +35,11 @@ public class TestBehavior : MonoBehaviour
 	IEnumerator TestRoutine()
 	{
 		yield return new WaitForSeconds(1.0f);
-		_emitter.Of(_subemitter).Of(_projectileEntity).Fire();
+		_emitter.Of(_subemitter.Of(_projectileEntity)).Fire();
+		yield return new WaitForSeconds(10.0f);
+		_emitter.SetTransform(Vector2.zero, 0);
+		_emitter.WithMovement(0, 0).WithFiringParameters(2, 7.0f, 4).Of(_subemitter.WithFiringParameters(50, 0.1f, 8).Of(_projectileEntity)).Fire();
+
 	}
 
 	// TODO PROJECTILE FIRING PATTERN FEATURES 

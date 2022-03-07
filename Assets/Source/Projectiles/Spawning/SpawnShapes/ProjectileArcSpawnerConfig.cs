@@ -22,5 +22,36 @@ namespace Projectiles
 		{
 			entityToSpawn = newEntity;
 		}
+
+		public int GetBurstAmount()
+		{
+			return burstAmount;
+		}
+
+		public void SetBurstAmount(int newBurstAmount)
+		{
+			burstAmount = newBurstAmount;
+		}
+
+		public float GetFiringCyclePeriod()
+		{
+			return firingCyclePeriod;
+		}
+
+		public void SetFiringCyclePeriod(float newFiringCyclePeriod)
+		{
+			firingCyclePeriod = newFiringCyclePeriod;
+		}
+
+		public int GetProjectileCountPerCycle()
+		{
+			return projectileCountPerCycle;
+		}
+
+
+		public void SetProjectileCountPerCycle(int newProjectileCountPerCycle)
+		{
+			projectileCountPerCycle = newProjectileCountPerCycle;
+		}
 	}
 }

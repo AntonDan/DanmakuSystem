@@ -53,7 +53,8 @@ Shader "Unlit/ProjectileShader"
 			#endif
 
 				const float scale = 1.0f;
-				float4 worldPosition = float4(position + v.vertex, scale);
+				const float radius = 0.25f;
+				float4 worldPosition = float4(position + v.vertex - radius / 2, scale);
 
 				v2f o;
 				o.vertex = mul(UNITY_MATRIX_VP, worldPosition);

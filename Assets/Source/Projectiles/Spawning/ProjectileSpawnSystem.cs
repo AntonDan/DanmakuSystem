@@ -10,7 +10,7 @@ using Unity.Transforms;
 
 namespace Projectiles
 {
-
+	[UpdateInGroup(typeof(InitializationSystemGroup))]
 	public class ProjectileSpawnSystem : SystemBase
 	{
 		private BeginSimulationEntityCommandBufferSystem _beginSimulationEntityCommandBufferSystem;

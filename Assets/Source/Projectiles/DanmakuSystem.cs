@@ -12,52 +12,19 @@ namespace Projectiles
 	{
 	}
 
-	public static class SpawnerExtensions
-	{
-		public static ProjectileEmitterBase Of(this ProjectileEmitterBase emitter, ProjectileEmitterBase subemitter)
-		{
-			if (emitter == null)
-			{
-				throw new ArgumentNullException("The provided emitter was null. Please pass a valid emitter");
-			}
-			if (emitter == null)
-			{
-				throw new ArgumentNullException("The provided subemitter was null. Please pass a valid emitter");
-			}
-			ProjectileEmitterBase lowestEmitter = emitter.GetLowestSubemitter();
-			lowestEmitter.SetSubemitter(subemitter);
-			return emitter;
-		}
-
-		public static ProjectileEmitterBase Of(this ProjectileEmitterBase emitter, Entity projectile)
-		{
-			if (emitter == null)
-			{
-				throw new ArgumentNullException("The provided emitter was null. Please pass a valid emitter");
-			}
-			if (projectile == Entity.Null)
-			{
-				throw new ArgumentNullException("The provided projectile was null. Please pass a valid entity");
-			}
-			ProjectileEmitterBase lowestEmitter = emitter.GetLowestSubemitter();
-			lowestEmitter.SetProjectile(projectile);
-			return emitter;
-		}
-	}
 
 	public abstract class ProjectileEmitterBase
 	{
+		public abstract ProjectileEmitterBase WithMovement(float movementSpeed, float rotationSpeed);
+		public abstract ProjectileEmitterBase WithFiringParameters(int burstAmount, float firingCyclePeriod, int projectileCountPerCycle);
+
+		public abstract ProjectileEmitterBase Of(ProjectileEmitterBase subemitter);
+		public abstract ProjectileEmitterBase Of(Entity projectile);
 		public abstract void Fire();
 
-		public abstract void SetSubemitter(ProjectileEmitterBase subemitter);
-		public abstract void SetProjectile(Entity projectile);
-
-		internal abstract EntityArchetype GetOrCreateArchetype();
-		internal abstract void CreateArchetype();
 		internal abstract Entity GetOrCreateEntity();
 		internal abstract void CreateEntity();
 		internal abstract void UpdateEntity();
-		internal abstract ProjectileEmitterBase GetLowestSubemitter();
 	}
 
 	public class ProjectileEmitter<SpawnerConfig> : ProjectileEmitterBase where SpawnerConfig : struct, IProjectileSpawnerConfig
@@ -82,16 +49,7 @@ namespace Projectiles
 			SetConfig(config);
 		}
 
-		public void MarkEntityDirty()
-		{
-			isEntityDirty = true;
-		}
-
-		public void MarkEntityClean()
-		{
-			isEntityDirty = false;
-		}
-
+		#region Getters
 		public float3 GetPosition()
 		{
 			return translation.Value;
@@ -110,6 +68,20 @@ namespace Projectiles
 		public SpawnerConfig GetConfig()
 		{
 			return config;
+		}
+		#endregion
+
+		#region  Setters
+		public void SetSubemitter(ProjectileEmitterBase subemitter)
+		{
+			child = subemitter;
+			MarkEntityDirty();
+		}
+
+		public void SetProjectile(Entity projectile)
+		{
+			config.SetEntityToSpawn(projectile);
+			MarkEntityDirty();
 		}
 
 		public void SetPosition(Vector2 position)
@@ -150,19 +122,27 @@ namespace Projectiles
 			MarkEntityDirty();
 		}
 
-		public override void SetSubemitter(ProjectileEmitterBase subemitter)
+		public void SetConfig(int burstAmount, float firingCyclePeriod, int projectileCountPerCycle)
 		{
-			child = subemitter;
+			config.SetBurstAmount(burstAmount);
+			config.SetFiringCyclePeriod(firingCyclePeriod);
+			config.SetProjectileCountPerCycle(projectileCountPerCycle);
 			MarkEntityDirty();
 		}
+		#endregion
 
-		public override void SetProjectile(Entity projectile)
+		#region Internal Methods
+		protected void MarkEntityDirty()
 		{
-			config.SetEntityToSpawn(projectile);
-			MarkEntityDirty();
+			isEntityDirty = true;
 		}
 
-		internal override void CreateArchetype()
+		protected void MarkEntityClean()
+		{
+			isEntityDirty = false;
+		}
+
+		protected void CreateArchetype()
 		{
 			entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
 			archetype = entityManager.CreateArchetype(
@@ -176,13 +156,27 @@ namespace Projectiles
 			);
 		}
 
-		internal override EntityArchetype GetOrCreateArchetype()
+		protected EntityArchetype GetOrCreateArchetype()
 		{
 			if (!archetype.Valid)
 			{
 				CreateArchetype();
 			}
 			return archetype;
+		}
+
+		internal override Entity GetOrCreateEntity()
+		{
+			if (entity == Entity.Null)
+			{
+				CreateEntity();
+			}
+			if (isEntityDirty)
+			{
+				UpdateEntity();
+				MarkEntityClean();
+			}
+			return entity;
 		}
 
 		internal override void CreateEntity()
@@ -219,19 +213,39 @@ namespace Projectiles
 			entityManager.SetComponentData<MovementComponent>(entity, movement);
 			entityManager.SetComponentData<SpawnerConfig>(entity, config);
 		}
+		#endregion
 
-		internal override Entity GetOrCreateEntity()
+		#region API methods
+		public override ProjectileEmitterBase WithMovement(float movementSpeed, float rotationSpeed)
 		{
-			if (entity == Entity.Null)
+			SetMovementData(movementSpeed, rotationSpeed);
+			return this;
+		}
+
+		public override ProjectileEmitterBase WithFiringParameters(int burstAmount, float firingCyclePeriod, int projectileCountPerCycle)
+		{
+			SetConfig(burstAmount, firingCyclePeriod, projectileCountPerCycle);
+			return this;
+		}
+
+		public override ProjectileEmitterBase Of(ProjectileEmitterBase subemitter)
+		{
+			if (subemitter == null)
 			{
-				CreateEntity();
+				throw new ArgumentNullException("The provided subemitter was null. Please pass a valid emitter");
 			}
-			if (isEntityDirty)
+			SetSubemitter(subemitter);
+			return this;
+		}
+
+		public override ProjectileEmitterBase Of(Entity projectile)
+		{
+			if (projectile == Entity.Null)
 			{
-				UpdateEntity();
-				MarkEntityClean();
+				throw new ArgumentNullException("The provided projectile was null. Please pass a valid entity");
 			}
-			return entity;
+			SetProjectile(projectile);
+			return this;
 		}
 
 		public override void Fire()
@@ -239,14 +253,7 @@ namespace Projectiles
 			entityManager.Instantiate(GetOrCreateEntity());
 		}
 
-		internal override ProjectileEmitterBase GetLowestSubemitter()
-		{
-			if (child == null)
-			{
-				return this;
-			}
-			return child.GetLowestSubemitter();
-		}
+		#endregion
 	}
 
 	public class CircularProjectileEmitter : ProjectileEmitter<ProjectileCircleSpawnerConfig>
