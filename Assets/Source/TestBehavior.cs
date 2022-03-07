@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using Projectiles;
 using Unity.Entities;
-using Sirenix.OdinInspector;
 using Unity.Transforms;
 
 public class TestBehavior : MonoBehaviour

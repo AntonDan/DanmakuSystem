@@ -31,17 +31,12 @@ namespace Projectiles
 			RefreshCameraBounds();
 			EntityQuery projectileQuery = GetEntityQuery(ComponentType.ReadWrite<Translation>(), ComponentType.ReadWrite<Rotation2D>(), ComponentType.ReadOnly<MovementComponent>());
 
-			EntityCommandBuffer.ParallelWriter commandBuffer = _endSimulationEntityCommandBufferSystem.CreateCommandBuffer().AsParallelWriter();
 			EntityMovementJob projectileMovementJob = new EntityMovementJob
 			{
-				entitiesToDestroy = EntityDestructionSystem.spawnersToDestroyParallel,
-				entityTypeHandle = GetEntityTypeHandle(),
 				translationTypeHandle = GetComponentTypeHandle<Translation>(false),
 				rotationTypeHandle = GetComponentTypeHandle<Rotation2D>(false),
 				projectileMoveTypeHandle = GetComponentTypeHandle<MovementComponent>(true),
 				deltaTime = Time.DeltaTime,
-				projectileBounds = _cameraBounds,
-				commandBuffer = commandBuffer
 			};
 			Dependency = projectileMovementJob.ScheduleParallel(projectileQuery, 1, Dependency);
 
@@ -65,12 +60,8 @@ namespace Projectiles
 	}
 
 	[BurstCompile]
-	public struct EntityMovementJob : IJobEntityBatchWithIndex
+	public struct EntityMovementJob : IJobEntityBatch
 	{
-		public NativeQueue<Entity>.ParallelWriter entitiesToDestroy;
-
-		[ReadOnly] public EntityTypeHandle entityTypeHandle;
-
 		public ComponentTypeHandle<Translation> translationTypeHandle;
 
 		public ComponentTypeHandle<Rotation2D> rotationTypeHandle;
@@ -79,36 +70,24 @@ namespace Projectiles
 
 		[ReadOnly] public float deltaTime;
 
-		[ReadOnly] public Rect projectileBounds;
-
-		public EntityCommandBuffer.ParallelWriter commandBuffer;
-
-		public void Execute(ArchetypeChunk batchInChunk, int batchIndex, int indexOfFirstEntityInQuery)
+		public void Execute(ArchetypeChunk batchInChunk, int batchIndex)
 		{
-			NativeArray<Entity> entityChunk = batchInChunk.GetNativeArray(entityTypeHandle);
 			NativeArray<Translation> translationArray = batchInChunk.GetNativeArray(translationTypeHandle);
 			NativeArray<Rotation2D> rotationArray = batchInChunk.GetNativeArray(rotationTypeHandle);
 			NativeArray<MovementComponent> projectileMoveDataArray = batchInChunk.GetNativeArray(projectileMoveTypeHandle);
 			for (int i = 0; i < batchInChunk.Count; ++i)
 			{
 				Translation translation = translationArray[i];
-				if (!projectileBounds.Contains(translation.Value))
-				{
-					entitiesToDestroy.Enqueue(entityChunk[i]);
-				}
-				else
-				{
-					MovementComponent projectileMoveData = projectileMoveDataArray[i];
-					float2 delta = (projectileMoveData.movementSpeed * deltaTime) * rotationArray[i].direction;
-					translation.Value.x += delta.x;
-					translation.Value.y += delta.y;
-					translation.Value.z = translation.Value.y + 0.25f * translation.Value.x;
-					translationArray[i] = translation;
+				MovementComponent projectileMoveData = projectileMoveDataArray[i];
+				float2 delta = (projectileMoveData.movementSpeed * deltaTime) * rotationArray[i].direction;
+				translation.Value.x += delta.x;
+				translation.Value.y += delta.y;
+				translation.Value.z = translation.Value.y + 0.25f * translation.Value.x;
+				translationArray[i] = translation;
 
-					Rotation2D rotation = rotationArray[i];
-					rotation.RotateBy(projectileMoveData.rotationSpeed * deltaTime);
-					rotationArray[i] = rotation;
-				}
+				Rotation2D rotation = rotationArray[i];
+				rotation.RotateBy(projectileMoveData.rotationSpeed * deltaTime);
+				rotationArray[i] = rotation;
 			}
 		}
 	}

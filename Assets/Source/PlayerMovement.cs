@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
+	public static Vector2 playerPosition;
+
 	// Start is called before the first frame update
 	void Start()
 	{
@@ -20,6 +22,6 @@ public class PlayerMovement : MonoBehaviour
 		direction.Normalize();
 
 		transform.Translate(direction * 2.0f * Time.deltaTime, Space.World);
-
+		// playerPosition = transform.position;
 	}
 }
