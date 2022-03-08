@@ -261,4 +261,10 @@ namespace Projectiles
 		public CircularProjectileEmitter(Vector2 position, float rotation, float movementSpeed, float rotationSpeed, ProjectileCircleSpawnerConfig config) : base(position, rotation, movementSpeed, rotationSpeed, config)
 		{ }
 	}
+
+	public class ArcProjectileEmitter : ProjectileEmitter<ProjectileArcSpawnerConfig>
+	{
+		public ArcProjectileEmitter(Vector2 position, float rotation, float movementSpeed, float rotationSpeed, ProjectileArcSpawnerConfig config) : base(position, rotation, movementSpeed, rotationSpeed, config)
+		{ }
+	}
 }

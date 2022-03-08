@@ -11,8 +11,9 @@ public class TestBehavior : MonoBehaviour
 	private EntityManager _entityManager;
 	private BlobAssetStore _blobAssetStore;
 
-	private CircularProjectileEmitter _emitter = new CircularProjectileEmitter(Vector2.zero, 0, 0, 0, new ProjectileCircleSpawnerConfig(4, 2.0f, 4, 3.0f));
-	private CircularProjectileEmitter _subemitter = new CircularProjectileEmitter(Vector2.zero, 0, 0, 20, new ProjectileCircleSpawnerConfig(5, 0.2f, 8, 0.5f));
+	private CircularProjectileEmitter _emitter = new CircularProjectileEmitter(Vector2.zero, 0, 0, 0, new ProjectileCircleSpawnerConfig(10, 5.0f, 2, 4.0f));
+	private CircularProjectileEmitter _subemitter = new CircularProjectileEmitter(Vector2.zero, 0, 0, 15, new ProjectileCircleSpawnerConfig(5, 0.5f, 8, 1.0f));
+	private ArcProjectileEmitter _subemitter2 = new ArcProjectileEmitter(Vector2.zero, 0, 0, 0, new ProjectileArcSpawnerConfig(1, 0.2f, 3, 15, 0.5f));
 
 	private void Awake()
 	{
@@ -35,8 +36,8 @@ public class TestBehavior : MonoBehaviour
 	IEnumerator TestRoutine()
 	{
 		yield return new WaitForSeconds(1.0f);
-		_emitter.Of(_subemitter.Of(_projectileEntity)).Fire();
-		yield return new WaitForSeconds(10.0f);
+		_emitter.Of(_subemitter.Of(_subemitter2.Of(_projectileEntity))).Fire();
+		yield return new WaitForSeconds(100.0f);
 		_emitter.SetTransform(Vector2.zero, 0);
 		_emitter.WithMovement(0, 0).WithFiringParameters(2, 7.0f, 4).Of(_subemitter.WithFiringParameters(50, 0.1f, 8).Of(_projectileEntity)).Fire();
 

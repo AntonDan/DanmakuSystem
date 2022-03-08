@@ -13,6 +13,16 @@ namespace Projectiles
 		public float angle;
 		public float radius;
 
+		public ProjectileArcSpawnerConfig(int burstAmount, float firingCyclePeriod, int projectileCountPerCycle, float angle, float radius)
+		{
+			this.entityToSpawn = Entity.Null;
+			this.burstAmount = burstAmount;
+			this.firingCyclePeriod = firingCyclePeriod;
+			this.projectileCountPerCycle = projectileCountPerCycle;
+			this.angle = angle;
+			this.radius = radius;
+		}
+
 		public Entity GetEntityToSpawn()
 		{
 			return entityToSpawn;
