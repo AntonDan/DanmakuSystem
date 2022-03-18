@@ -1,12 +1,16 @@
+using System;
 using System.Collections.Generic;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
+using Unity.Mathematics;
 using Unity.Transforms;
+using UnityEngine;
 
-[assembly: RegisterGenericJobType(typeof(Projectiles.ProjectileSpawnSystem.ProjectileSpawningJob<Projectiles.ProjectileArcSpawnerConfig, Projectiles.ProjectileArcSpawner>))]
-[assembly: RegisterGenericJobType(typeof(Projectiles.ProjectileSpawnSystem.ProjectileSpawningJob<Projectiles.ProjectileCircleSpawnerConfig, Projectiles.ProjectileCircleSpawner>))]
+[assembly: RegisterGenericJobType(typeof(Projectiles.ProjectileSpawnSystem.ProjectileSpawningJob<Projectiles.BaseSpawnerConfig<Projectiles.ProjectileArcSpawnerConfig>, Projectiles.ProjectileArcSpawner>))]
+[assembly: RegisterGenericJobType(typeof(Projectiles.ProjectileSpawnSystem.ProjectileSpawningJob<Projectiles.BaseSpawnerConfig<Projectiles.ProjectileCircleSpawnerConfig>, Projectiles.ProjectileCircleSpawner>))]
+[assembly: RegisterGenericJobType(typeof(Projectiles.ProjectileSpawnSystem.ProjectileSpawningJob<Projectiles.BaseSpawnerConfig<Projectiles.ProjectileConeSpawnerConfig>, Projectiles.ProjectileConeSpawner>))]
 
 namespace Projectiles
 {
@@ -14,16 +18,20 @@ namespace Projectiles
 	public class ProjectileSpawnSystem : SystemBase
 	{
 		private BeginSimulationEntityCommandBufferSystem _beginSimulationEntityCommandBufferSystem;
+		private Unity.Mathematics.Random _rand;
 
 		protected override void OnCreate()
 		{
+			TypeManager.Initialize();
 			_beginSimulationEntityCommandBufferSystem = World.GetOrCreateSystem<BeginSimulationEntityCommandBufferSystem>();
+			_rand = new Unity.Mathematics.Random((uint)DateTime.UtcNow.Millisecond);
 		}
 
 		protected override void OnUpdate()
 		{
-			ScheduleSpawnerJob<ProjectileArcSpawnerConfig, ProjectileArcSpawner>();
-			ScheduleSpawnerJob<ProjectileCircleSpawnerConfig, ProjectileCircleSpawner>();
+			ScheduleSpawnerJob<BaseSpawnerConfig<ProjectileArcSpawnerConfig>, ProjectileArcSpawner>();
+			ScheduleSpawnerJob<BaseSpawnerConfig<ProjectileCircleSpawnerConfig>, ProjectileCircleSpawner>();
+			ScheduleSpawnerJob<BaseSpawnerConfig<ProjectileConeSpawnerConfig>, ProjectileConeSpawner>();
 
 			// Dependency.Complete();
 			_beginSimulationEntityCommandBufferSystem.AddJobHandleForProducer(Dependency);
@@ -45,7 +53,8 @@ namespace Projectiles
 				spawnerStateTypeHandle = GetComponentTypeHandle<ProjectileSpawnerState>(false),
 				currentTime = Time.ElapsedTime,
 				deltaTime = Time.DeltaTime,
-				commandBuffer = commandBuffer
+				commandBuffer = commandBuffer,
+				seed = (uint)(UnityEngine.Random.Range(0, int.MaxValue))
 			};
 
 			Dependency = projectileSpawnJob.ScheduleParallel(projectileSpawnerQuery, 1, Dependency);
@@ -65,6 +74,9 @@ namespace Projectiles
 			[ReadOnly] public float deltaTime;
 
 			public EntityCommandBuffer.ParallelWriter commandBuffer;
+			public uint seed;
+
+			private Unity.Mathematics.Random rand;
 			[ReadOnly] private SpawnerBehaviorType spawnerBehavior;
 
 
@@ -75,12 +87,14 @@ namespace Projectiles
 				NativeArray<Rotation2D> rotationArray = batchInChunk.GetNativeArray(rotationTypeHandle);
 				NativeArray<SpawnerConfigType> spawnerDataArray = batchInChunk.GetNativeArray(spawnerDataTypeHandle);
 				NativeArray<ProjectileSpawnerState> spawnerStateArray = batchInChunk.GetNativeArray(spawnerStateTypeHandle);
+				rand = new Unity.Mathematics.Random(seed + (uint)indexOfFirstEntityInQuery);
+
 				for (int i = 0; i < batchInChunk.Count; ++i)
 				{
 					ProjectileSpawnerState spawnerState = spawnerStateArray[i];
 					if (spawnerState.nextSpawnTime < currentTime && !spawnerState.shouldBeDestroyed)
 					{
-						spawnerStateArray[i] = spawnerBehavior.Fire(commandBuffer, indexOfFirstEntityInQuery + i, translationArray[i], rotationArray[i], spawnerDataArray[i], spawnerState, currentTime, deltaTime);
+						spawnerStateArray[i] = spawnerBehavior.Fire(commandBuffer, indexOfFirstEntityInQuery + i, translationArray[i], rotationArray[i], spawnerDataArray[i], spawnerState, currentTime, deltaTime, rand);
 						if (spawnerStateArray[i].shouldBeDestroyed)
 						{
 							spawnersToDestroy.Enqueue(entityArray[i]);

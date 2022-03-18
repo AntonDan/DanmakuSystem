@@ -19,8 +19,10 @@ namespace Projectiles
 
 		protected override void OnUpdate()
 		{
-			EntityManager.DestroyEntity(spawnersToDestroy.ToArray(Allocator.Temp));
+			NativeArray<Entity> TempArray = spawnersToDestroy.ToArray(Allocator.Temp);
+			EntityManager.DestroyEntity(TempArray);
 			spawnersToDestroy.Clear();
+			TempArray.Dispose();
 		}
 
 		protected override void OnDestroy()
@@ -28,5 +30,6 @@ namespace Projectiles
 			spawnersToDestroy.Dispose();
 			base.OnDestroy();
 		}
+
 	}
 }

@@ -54,12 +54,12 @@ namespace Projectiles
 		{
 			NativeArray<Translation> translationArray = batchInChunk.GetNativeArray(translationTypeHandle);
 			NativeArray<Rotation2D> rotationArray = batchInChunk.GetNativeArray(rotationTypeHandle);
-			NativeArray<MovementComponent> projectileMoveDataArray = batchInChunk.GetNativeArray(projectileMoveTypeHandle);
+			NativeArray<MovementComponent> entityMovementArray = batchInChunk.GetNativeArray(projectileMoveTypeHandle);
 			for (int i = 0; i < batchInChunk.Count; ++i)
 			{
 				Translation translation = translationArray[i];
-				MovementComponent projectileMoveData = projectileMoveDataArray[i];
-				float2 delta = (projectileMoveData.movementSpeed * deltaTime) * rotationArray[i].direction;
+				MovementComponent projectileMoveData = entityMovementArray[i];
+				float2 delta = (projectileMoveData.movementSpeed * deltaTime) * (projectileMoveData.shouldUseEntityRotationInstead ? rotationArray[i].direction : projectileMoveData.movementDirection);
 				translation.Value.x += delta.x;
 				translation.Value.y += delta.y;
 				translation.Value.z = translation.Value.y + 0.25f * translation.Value.x;

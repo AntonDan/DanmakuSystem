@@ -47,7 +47,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rotationSpeed: 0
-  movementSpeed: 1
+  movementSpeed: 2
+  movementDirection:
+    x: 0
+    y: 0
+  shouldUseEntityRotationInstead: 1
 --- !u!114 &6778101216833813597
 MonoBehaviour:
   m_ObjectHideFlags: 0

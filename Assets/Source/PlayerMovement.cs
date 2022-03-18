@@ -1,6 +1,7 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using MEC;
+using System.Collections.Generic;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -8,9 +9,17 @@ public class PlayerMovement : MonoBehaviour
 
 	public GameObject sword;
 
+	private Transform _swordTransform;
+	private Transform _playerTransform;
+	private Material _swordMaterial;
+	private CoroutineHandle _handle;
+
 	private void Start()
 	{
-		StartCoroutine(SwordSlash());
+		playerPosition = transform.position;
+		_swordTransform = sword.transform;
+		_playerTransform = transform;
+		_swordMaterial = sword.GetComponent<Renderer>().material;
 	}
 
 	void Update()
@@ -18,40 +27,60 @@ public class PlayerMovement : MonoBehaviour
 		Vector2 direction;
 		direction.x = Input.GetAxisRaw("Horizontal");
 		direction.y = Input.GetAxisRaw("Vertical");
-		if (direction.magnitude < 0.1f) return;
-		direction.Normalize();
+		if (direction.magnitude > 0.0f)
+		{
+			direction.Normalize();
+			transform.Translate(direction * 2.5f * Time.deltaTime, Space.World);
+			playerPosition = transform.position;
+		}
 
-		transform.Translate(direction * 2.0f * Time.deltaTime, Space.World);
-		playerPosition = transform.position;
+		if (Input.GetKeyDown(KeyCode.Space))
+		{
+			_handle = Timing.RunCoroutineSingleton(SwordSlash(), _handle, SingletonBehavior.Abort);
+		}
 	}
 
-	IEnumerator SwordSlash()
+	IEnumerator<float> SwordSlash()
 	{
-		Transform swordTransform = sword.transform;
-		Transform playerTransform = transform;
-		yield return new WaitForSeconds(2.0f);
+		float swingArcAngle = 180.0f;
+		float swingRadius = 0.5f;
+		float swingDuration = 0.1f;
+		float fadeDuration = 0.3f;
 
-		while (true)
+		RaycastHit2D Hit = Physics2D.CircleCast(_swordTransform.position, swingRadius, _playerTransform.forward);
+		if (Hit)
 		{
-			Material mat = sword.GetComponent<Renderer>().material;
-			float swingDuration = 0.15f;
-			for (float time = 0; time < swingDuration; time += Time.deltaTime)
+			IDamageable target = Hit.transform.GetComponent<IDamageable>();
+			if (target != null)
 			{
-				float progression = time / swingDuration;
-				mat.SetTextureOffset("_MainTex", new Vector2(Mathf.Lerp(1, 0.2f, progression), 0f));
-				yield return null;
+				Vector2 hitDirection = Hit.point - (Vector2)_swordTransform.position;
+				float angle = Vector2.Angle(_playerTransform.up, hitDirection);
+				if (angle < swingArcAngle / 2.0f)
+				{
+					Debug.DrawLine(_swordTransform.position, Hit.point, Color.red, 0.1f);
+					target.Damage(0.5f);
+				}
 			}
-
-			float fadeDuration = 0.4f;
-			for (float time = 0; time < fadeDuration; time += Time.deltaTime)
-			{
-				float progression = time / fadeDuration;
-				mat.SetTextureOffset("_MainTex", new Vector2(Mathf.Lerp(0.2f, -1, progression), 0f));
-				yield return null;
-			}
-			yield return new WaitForSeconds(0.25f);
 		}
-		// for ()
-		// swordTransform.position = 
+
+		for (float time = 0; time < swingDuration; time += Time.deltaTime)
+		{
+			float progression = time / swingDuration;
+			_swordMaterial.SetTextureOffset("_MainTex", new Vector2(Mathf.Lerp(1, 0.2f, progression), 0f));
+			yield return Timing.WaitForOneFrame;
+		}
+
+		for (float time = 0; time < fadeDuration; time += Time.deltaTime)
+		{
+			float progression = time / fadeDuration;
+			_swordMaterial.SetTextureOffset("_MainTex", new Vector2(Mathf.Lerp(0.2f, -1, progression), 0f));
+			yield return Timing.WaitForOneFrame;
+		}
+	}
+
+	void OnDrawGizmos()
+	{
+		Gizmos.color = Color.green;
+		Gizmos.DrawWireSphere(sword.transform.position, 0.5f);
 	}
 }

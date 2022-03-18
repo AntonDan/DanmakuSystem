@@ -6,6 +6,9 @@ using Unity.Transforms;
 using System;
 using Unity.Mathematics;
 
+[assembly: RegisterGenericComponentType(typeof(Projectiles.BaseSpawnerConfig<Projectiles.ProjectileArcSpawnerConfig>))]
+[assembly: RegisterGenericComponentType(typeof(Projectiles.BaseSpawnerConfig<Projectiles.ProjectileCircleSpawnerConfig>))]
+
 namespace Projectiles
 {
 	public class DanmakuSystem : MonoBehaviour
@@ -15,38 +18,39 @@ namespace Projectiles
 
 	public abstract class ProjectileEmitterBase
 	{
-		public abstract ProjectileEmitterBase WithMovement(float movementSpeed, float rotationSpeed);
+		public abstract ProjectileEmitterBase WithTransform(Vector2 position, float rotation);
+		public abstract ProjectileEmitterBase WithMovement(float movementSpeed, float rotationSpeed, Vector2? movementDirection = null);
 		public abstract ProjectileEmitterBase WithFiringParameters(int burstAmount, float firingCyclePeriod, int projectileCountPerCycle);
 
 		public abstract ProjectileEmitterBase Of(ProjectileEmitterBase subemitter);
 		public abstract ProjectileEmitterBase Of(Entity projectile);
-		public abstract void Fire();
+		public abstract Entity Fire();
 
 		internal abstract Entity GetOrCreateEntity();
 		internal abstract void CreateEntity();
 		internal abstract void UpdateEntity();
 	}
 
-	public class ProjectileEmitter<SpawnerConfig> : ProjectileEmitterBase where SpawnerConfig : struct, IProjectileSpawnerConfig
+	public class ProjectileEmitter<SpawnerConfig> : ProjectileEmitterBase where SpawnerConfig : struct
 	{
-		protected EntityArchetype archetype;
-		protected EntityManager entityManager;
-		protected ProjectileEmitterBase child;
-
-		protected Entity entity;
-
 		protected Translation translation;
 		protected Rotation2D rotation;
 		protected MovementComponent movement;
-		protected SpawnerConfig config;
+
+		protected EntityArchetype archetype;
+		protected EntityManager entityManager;
+		protected ProjectileEmitterBase child;
+		protected Entity entity;
 
 		protected bool isEntityDirty;
 
-		public ProjectileEmitter(Vector2 position, float rotation, float movementSpeed, float rotationSpeed, SpawnerConfig config)
+		private BaseSpawnerConfig<SpawnerConfig> _config;
+
+		public ProjectileEmitter(Vector2 position, float rotation, float movementSpeed, float rotationSpeed, Vector2? movementDirection, SpawnerConfig config)
 		{
 			SetTransform(position, rotation);
-			SetMovementData(movementSpeed, rotationSpeed);
-			SetConfig(config);
+			SetMovementData(movementSpeed, rotationSpeed, movementDirection);
+			_config.specializedConfig = config;
 		}
 
 		#region Getters
@@ -64,11 +68,6 @@ namespace Projectiles
 		{
 			return rotation.direction;
 		}
-
-		public SpawnerConfig GetConfig()
-		{
-			return config;
-		}
 		#endregion
 
 		#region  Setters
@@ -80,25 +79,7 @@ namespace Projectiles
 
 		public void SetProjectile(Entity projectile)
 		{
-			config.SetEntityToSpawn(projectile);
-			MarkEntityDirty();
-		}
-
-		public void SetPosition(Vector2 position)
-		{
-			translation.Value = new float3(position.x, position.y, 0);
-			MarkEntityDirty();
-		}
-
-		public void SetPosition(float3 position)
-		{
-			translation.Value = position;
-			MarkEntityDirty();
-		}
-
-		public void SetRotation(float angle)
-		{
-			rotation.SetAngle(angle);
+			_config.SetEntityToSpawn(projectile);
 			MarkEntityDirty();
 		}
 
@@ -109,24 +90,25 @@ namespace Projectiles
 			MarkEntityDirty();
 		}
 
-		public void SetMovementData(float movementSpeed, float rotationSpeed)
+		public void SetMovementData(float movementSpeed, float rotationSpeed, Vector2? movementDirection = null)
 		{
 			movement.movementSpeed = movementSpeed;
 			movement.rotationSpeed = rotationSpeed;
+			movement.SetMovementDirection(movementDirection);
+			MarkEntityDirty();
+		}
+
+		public void SetFiringParameters(int burstAmount, float firingCyclePeriod, int projectileCountPerCycle)
+		{
+			_config.SetBurstAmount(burstAmount);
+			_config.SetFiringCyclePeriod(firingCyclePeriod);
+			_config.SetProjectileCountPerCycle(projectileCountPerCycle);
 			MarkEntityDirty();
 		}
 
 		public void SetConfig(SpawnerConfig config)
 		{
-			this.config = config;
-			MarkEntityDirty();
-		}
-
-		public void SetConfig(int burstAmount, float firingCyclePeriod, int projectileCountPerCycle)
-		{
-			config.SetBurstAmount(burstAmount);
-			config.SetFiringCyclePeriod(firingCyclePeriod);
-			config.SetProjectileCountPerCycle(projectileCountPerCycle);
+			_config.specializedConfig = config;
 			MarkEntityDirty();
 		}
 		#endregion
@@ -151,7 +133,7 @@ namespace Projectiles
 							typeof(LocalToWorld),
 							typeof(MovementComponent),
 							typeof(ProjectileSpawnerState),
-							typeof(SpawnerConfig),
+							typeof(BaseSpawnerConfig<SpawnerConfig>),
 							typeof(Prefab)
 			);
 		}
@@ -186,15 +168,8 @@ namespace Projectiles
 				entityManager.DestroyEntity(entity);
 			}
 
-			if (child != null)
-			{
-				config.SetEntityToSpawn(child.GetOrCreateEntity());
-			}
 			entity = entityManager.CreateEntity(GetOrCreateArchetype());
-			entityManager.SetComponentData<Translation>(entity, translation);
-			entityManager.SetComponentData<Rotation2D>(entity, rotation);
-			entityManager.SetComponentData<MovementComponent>(entity, movement);
-			entityManager.SetComponentData<SpawnerConfig>(entity, config);
+			UpdateEntity();
 		}
 
 		internal override void UpdateEntity()
@@ -206,25 +181,31 @@ namespace Projectiles
 
 			if (child != null)
 			{
-				config.SetEntityToSpawn(child.GetOrCreateEntity());
+				_config.SetEntityToSpawn(child.GetOrCreateEntity());
 			}
 			entityManager.SetComponentData<Translation>(entity, translation);
 			entityManager.SetComponentData<Rotation2D>(entity, rotation);
 			entityManager.SetComponentData<MovementComponent>(entity, movement);
-			entityManager.SetComponentData<SpawnerConfig>(entity, config);
+			entityManager.SetComponentData<BaseSpawnerConfig<SpawnerConfig>>(entity, _config);
 		}
 		#endregion
 
 		#region API methods
-		public override ProjectileEmitterBase WithMovement(float movementSpeed, float rotationSpeed)
+		public override ProjectileEmitterBase WithTransform(Vector2 position, float rotation)
 		{
-			SetMovementData(movementSpeed, rotationSpeed);
+			SetTransform(position, rotation);
+			return this;
+		}
+
+		public override ProjectileEmitterBase WithMovement(float movementSpeed, float rotationSpeed, Vector2? movementDirection = null)
+		{
+			SetMovementData(movementSpeed, rotationSpeed, movementDirection);
 			return this;
 		}
 
 		public override ProjectileEmitterBase WithFiringParameters(int burstAmount, float firingCyclePeriod, int projectileCountPerCycle)
 		{
-			SetConfig(burstAmount, firingCyclePeriod, projectileCountPerCycle);
+			SetFiringParameters(burstAmount, firingCyclePeriod, projectileCountPerCycle);
 			return this;
 		}
 
@@ -248,23 +229,34 @@ namespace Projectiles
 			return this;
 		}
 
-		public override void Fire()
+		public override Entity Fire()
 		{
-			entityManager.Instantiate(GetOrCreateEntity());
+			return entityManager.Instantiate(GetOrCreateEntity());
 		}
 
+		public ProjectileEmitterBase WithConfig(SpawnerConfig config)
+		{
+			SetConfig(config);
+			return this;
+		}
 		#endregion
 	}
 
 	public class CircularProjectileEmitter : ProjectileEmitter<ProjectileCircleSpawnerConfig>
 	{
-		public CircularProjectileEmitter(Vector2 position, float rotation, float movementSpeed, float rotationSpeed, ProjectileCircleSpawnerConfig config) : base(position, rotation, movementSpeed, rotationSpeed, config)
+		public CircularProjectileEmitter(Vector2 position, float rotation, float movementSpeed, float rotationSpeed, Vector2? movementDirection, ProjectileCircleSpawnerConfig config) : base(position, rotation, movementSpeed, rotationSpeed, movementDirection, config)
 		{ }
 	}
 
 	public class ArcProjectileEmitter : ProjectileEmitter<ProjectileArcSpawnerConfig>
 	{
-		public ArcProjectileEmitter(Vector2 position, float rotation, float movementSpeed, float rotationSpeed, ProjectileArcSpawnerConfig config) : base(position, rotation, movementSpeed, rotationSpeed, config)
+		public ArcProjectileEmitter(Vector2 position, float rotation, float movementSpeed, float rotationSpeed, Vector2? movementDirection, ProjectileArcSpawnerConfig config) : base(position, rotation, movementSpeed, rotationSpeed, movementDirection, config)
+		{ }
+	}
+
+	public class ConeProjectileEmitter : ProjectileEmitter<ProjectileConeSpawnerConfig>
+	{
+		public ConeProjectileEmitter(Vector2 position, float rotation, float movementSpeed, float rotationSpeed, Vector2? movementDirection, ProjectileConeSpawnerConfig config) : base(position, rotation, movementSpeed, rotationSpeed, movementDirection, config)
 		{ }
 	}
 }

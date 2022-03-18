@@ -11,19 +11,6 @@ namespace Projectiles
 	[UpdateInGroup(typeof(PresentationSystemGroup))]
 	public class ProjectileRenderingSystem : SystemBase
 	{
-		public struct ProjectileRenderingJob : IJobParallelFor
-		{
-			[ReadOnly] public NativeArray<Translation> translations;
-
-			public NativeArray<float3> positions;
-
-			[BurstCompile]
-			public void Execute(int index)
-			{
-				positions[index] = translations[index].Value;
-			}
-		}
-
 		private Camera _mainCamera;
 		private Mesh _quad;
 		private Material _material;
