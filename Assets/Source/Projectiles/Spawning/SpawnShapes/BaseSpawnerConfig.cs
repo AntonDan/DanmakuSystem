@@ -1,12 +1,8 @@
 using Unity.Entities;
 
-[assembly: RegisterGenericComponentType(typeof(Projectiles.BaseSpawnerConfig<Projectiles.ProjectileArcSpawnerConfig>))]
-[assembly: RegisterGenericComponentType(typeof(Projectiles.BaseSpawnerConfig<Projectiles.ProjectileCircleSpawnerConfig>))]
-
 namespace Projectiles
 {
 
-	[GenerateAuthoringComponent]
 	public struct BaseSpawnerConfig<T> : IProjectileSpawnerConfig where T : struct
 	{
 		public Entity entityToSpawn;

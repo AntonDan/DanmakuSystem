@@ -3,7 +3,7 @@ using Unity.Entities;
 namespace Projectiles
 {
 	[UpdateInGroup(typeof(InitializationSystemGroup))]
-	public class ProjectileSpawnerControlSystem : SystemBase
+	public partial class ProjectileSpawnerControlSystem : SystemBase
 	{
 		private EndInitializationEntityCommandBufferSystem _endInitializationEntityCommandBufferSystem;
 

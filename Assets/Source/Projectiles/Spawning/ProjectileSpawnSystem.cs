@@ -15,7 +15,7 @@ using UnityEngine;
 namespace Projectiles
 {
 	[UpdateInGroup(typeof(InitializationSystemGroup))]
-	public class ProjectileSpawnSystem : SystemBase
+	public partial class ProjectileSpawnSystem : SystemBase
 	{
 		private BeginSimulationEntityCommandBufferSystem _beginSimulationEntityCommandBufferSystem;
 		private Unity.Mathematics.Random _rand;
@@ -57,7 +57,7 @@ namespace Projectiles
 				seed = (uint)(UnityEngine.Random.Range(0, int.MaxValue))
 			};
 
-			Dependency = projectileSpawnJob.ScheduleParallel(projectileSpawnerQuery, 1, Dependency);
+			Dependency = projectileSpawnJob.ScheduleParallel(projectileSpawnerQuery, Dependency);
 		}
 
 		[BurstCompile]

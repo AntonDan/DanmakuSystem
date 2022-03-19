@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace Projectiles
 {
-	public class EntityMovementSystem : SystemBase
+	public partial class EntityMovementSystem : SystemBase
 	{
 		private EndSimulationEntityCommandBufferSystem _endSimulationEntityCommandBufferSystem;
 
@@ -32,7 +32,7 @@ namespace Projectiles
 				projectileMoveTypeHandle = GetComponentTypeHandle<MovementComponent>(true),
 				deltaTime = Time.DeltaTime,
 			};
-			Dependency = projectileMovementJob.ScheduleParallel(projectileQuery, 1, Dependency);
+			Dependency = projectileMovementJob.ScheduleParallel(projectileQuery, Dependency);
 
 			// Dependency.Complete();
 			_endSimulationEntityCommandBufferSystem.AddJobHandleForProducer(Dependency);

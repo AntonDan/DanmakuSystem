@@ -5,7 +5,7 @@ using Unity.Entities;
 namespace Projectiles
 {
 	[BurstCompile, UpdateInGroup(typeof(PresentationSystemGroup)), UpdateAfter(typeof(BeginPresentationEntityCommandBufferSystem))]
-	public class EntityDestructionSystem : SystemBase
+	public partial class EntityDestructionSystem : SystemBase
 	{
 		public static NativeQueue<Entity>.ParallelWriter spawnersToDestroyParallel;
 		public static NativeQueue<Entity> spawnersToDestroy;

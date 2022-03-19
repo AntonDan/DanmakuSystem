@@ -9,7 +9,7 @@ using UnityEngine;
 namespace Projectiles
 {
 	[UpdateInGroup(typeof(PresentationSystemGroup))]
-	public class ProjectileRenderingSystem : SystemBase
+	public partial class ProjectileRenderingSystem : SystemBase
 	{
 		private Camera _mainCamera;
 		private Mesh _quad;

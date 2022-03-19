@@ -4,6 +4,7 @@ using UnityEngine;
 using MEC;
 using System;
 using Unity.Entities;
+using Projectiles;
 
 public partial class EnemyBehavior : MonoBehaviour
 {
@@ -44,7 +45,4 @@ public partial class EnemyBehavior : MonoBehaviour
 			yield return Timing.WaitForSeconds(0.05f);
 		}
 	}
-
-
-
 }

@@ -9,7 +9,7 @@ using UnityEngine;
 namespace Projectiles
 {
 	[UpdateInGroup(typeof(LateSimulationSystemGroup))]
-	public class ProjectileCollisionSystem : SystemBase
+	public partial class ProjectileCollisionSystem : SystemBase
 	{
 		private Transform _mainCameraTransform;
 		private Camera _mainCamera;
@@ -37,7 +37,7 @@ namespace Projectiles
 				projectileBounds = _cameraBounds,
 				playerPosition = PlayerMovement.playerPosition
 			};
-			Dependency = projectileCollisionJob.ScheduleParallel(projectileQuery, 1, Dependency);
+			Dependency = projectileCollisionJob.ScheduleParallel(projectileQuery, Dependency);
 
 			_endSimulationEntityCommandBufferSystem.AddJobHandleForProducer(Dependency);
 		}
